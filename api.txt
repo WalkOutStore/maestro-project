@@ -1,0 +1,3 @@
+python -m uvicorn app.main:app --reload --port 8000
+
+Google Trends API=52b8d32d5de717ce74f2a2f544867a34857c29fa0af6a2026e8c4fba589bb57c
