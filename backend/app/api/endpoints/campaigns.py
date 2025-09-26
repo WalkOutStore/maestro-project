@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 
@@ -410,3 +410,66 @@ def update_recommendation(
     db.refresh(recommendation)
     
     return recommendation
+
+
+# API للإنجازات
+@router.get("/achievements/unlocked", response_model=List[Dict[str, Any]])
+def get_unlocked_achievements(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    الحصول على الإنجازات المفتوحة للمستخدم
+    """
+    # هذه دالة وهمية للإنجازات - يمكن تطويرها لاحقاً
+    achievements = [
+        {
+            "id": 1,
+            "name": "أول حملة تسويقية",
+            "description": "تم إنشاء أول حملة تسويقية بنجاح",
+            "icon": "🎯",
+            "unlocked_at": "2023-06-01T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "name": "محتوى إبداعي",
+            "description": "تم إنشاء 5 محتويات إبداعية",
+            "icon": "✨",
+            "unlocked_at": "2023-06-05T14:30:00Z"
+        }
+    ]
+    
+    return achievements
+
+
+@router.get("/achievements/progress", response_model=List[Dict[str, Any]])
+def get_achievements_progress(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    الحصول على تقدم الإنجازات للمستخدم
+    """
+    # هذه دالة وهمية لتقدم الإنجازات - يمكن تطويرها لاحقاً
+    progress = [
+        {
+            "id": 3,
+            "name": "خبير التسويق",
+            "description": "إدارة 10 حملات تسويقية ناجحة",
+            "icon": "🏆",
+            "current": 7,
+            "target": 10,
+            "percentage": 70
+        },
+        {
+            "id": 4,
+            "name": "محلل بيانات",
+            "description": "تحليل 50 حملة تسويقية",
+            "icon": "📊",
+            "current": 23,
+            "target": 50,
+            "percentage": 46
+        }
+    ]
+    
+    return progress

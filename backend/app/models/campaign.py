@@ -13,6 +13,10 @@ class Campaign(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    product_name = Column(String)
+    industry = Column(String)
+    goal = Column(String) # Add the 'goal' column to the Campaign model.
+
     description = Column(Text)
     status = Column(String, default="draft")  # draft, active, paused, completed
     budget = Column(Float, default=0.0)

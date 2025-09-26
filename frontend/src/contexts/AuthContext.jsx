@@ -20,22 +20,10 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           console.error('فشل التحقق من المصادقة:', err);
           localStorage.removeItem('token');
-          // للاختبار: إنشاء مستخدم وهمي
-          setUser({
-            id: 1,
-            username: 'test_user',
-            email: 'test@example.com',
-            full_name: 'مستخدم تجريبي'
-          });
+          setUser(null);
         }
       } else {
-        // للاختبار: إنشاء مستخدم وهمي إذا لم يكن هناك token
-        setUser({
-          id: 1,
-          username: 'test_user',
-          email: 'test@example.com',
-          full_name: 'مستخدم تجريبي'
-        });
+        setUser(null);
       }
       setLoading(false);
     };

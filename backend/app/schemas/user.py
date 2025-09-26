@@ -12,7 +12,8 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     is_active: bool = True
 
-
+class Config:
+        from_attributes = True
 class UserCreate(UserBase):
     """
     مخطط إنشاء مستخدم جديد
@@ -41,7 +42,7 @@ class UserInDBBase(UserBase):
     is_superuser: bool = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class User(UserInDBBase):

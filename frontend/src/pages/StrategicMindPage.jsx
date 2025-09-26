@@ -79,32 +79,66 @@ const StrategicMindPage = () => {
   const handlePredictCTR = async () => {
     setLoading(true);
     setSuccess(false);
-    
+
+    console.log('🔍 DEBUG: handlePredictCTR called');
+    console.log('🔍 DEBUG: ctrForm data:', ctrForm);
+
+    // تحويل البيانات لتناسب الشروط في الـ backend
+    const processedData = {
+      industry: ctrForm.industry,
+      channel: ctrForm.channel,
+      audience_age: Array.isArray(ctrForm.audience_age) ? ctrForm.audience_age.join(',') : ctrForm.audience_age,
+      budget: ctrForm.budget,
+      content_type: ctrForm.content_type,
+    };
+
+    console.log('🔍 DEBUG: processedData:', processedData);
+    console.log('🔍 DEBUG: API URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/strategic-mind/predict-ctr`);
+
     try {
-      // استدعاء API حقيقي
-      const response = await strategicMindService.predictCTR(ctrForm);
-      
+      // استدعاء API حقيقي لتنبؤ CTR
+      console.log('🔍 DEBUG: Making API call...');
+      const response = await strategicMindService.predictCTR(processedData);
+      console.log('✅ DEBUG: API response received:', response);
+
       setCtrPrediction({
         prediction: response.data.prediction,
         confidence: response.data.confidence,
-        factors: response.data.explanation?.map(exp => ({
-          name: exp.factor,
-          value: exp.importance
-        })) || ctrFactorsData,
-        benchmark: 0.025, // يمكن إضافة هذا للـ API
+        method: response.data.method,
+        explanation: response.data.explanation,
+        trend: response.data.trend || ctrTrendData,
+        benchmark: response.data.benchmark || 0.05,
+        factors: response.data.factors || [
+          {"name": "الصناعة", "value": 0.2},
+          {"name": "الميزانية", "value": 0.2},
+          {"name": "القناة", "value": 0.2},
+          {"name": "الفئة العمرية", "value": 0.2},
+          {"name": "نوع المحتوى", "value": 0.2}
+        ]
       });
       setSuccess(true);
-      
-      // إعادة تعيين رسالة النجاح بعد 3 ثوانٍ
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('خطأ في التنبؤ بمعدل النقر:', error);
-      // في حالة الخطأ، استخدم بيانات نموذجية
+      console.error('❌ DEBUG: Error in predict CTR:', error);
+      console.error('❌ DEBUG: Error response:', error.response);
+      console.error('❌ DEBUG: Error status:', error.response?.status);
+      console.error('❌ DEBUG: Error data:', error.response?.data);
+
+      // في حالة الخطأ، استخدم تنبؤ افتراضي
       setCtrPrediction({
-        prediction: 0.032,
-        confidence: 0.85,
-        factors: ctrFactorsData,
-        benchmark: 0.025,
+        prediction: 0.08,
+        confidence: 0.7,
+        method: 'fallback',
+        explanation: 'تنبؤ افتراضي بسبب خطأ في الخادم',
+        trend: ctrTrendData,
+        benchmark: 0.05,
+        factors: [
+          {"name": "الصناعة", "value": 0.2},
+          {"name": "الميزانية", "value": 0.2},
+          {"name": "القناة", "value": 0.2},
+          {"name": "الفئة العمرية", "value": 0.2},
+          {"name": "نوع المحتوى", "value": 0.2}
+        ]
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -112,31 +146,47 @@ const StrategicMindPage = () => {
       setLoading(false);
     }
   };
-  
+
   const handlePredictROI = async () => {
     setLoading(true);
     setSuccess(false);
-    
+
+    console.log('DEBUG: handlePredictROI called');
+    console.log('DEBUG: roiForm data:', roiForm);
+
+    // تحويل البيانات لتناسب الشروط في الـ backend
+    const processedData = {
+      industry: roiForm.industry,
+      channel: roiForm.channel,
+      budget: roiForm.budget,
+      duration: roiForm.duration,
+    };
+
+    console.log('DEBUG: processedData:', processedData);
+
     try {
-      // استدعاء API حقيقي
-      const response = await strategicMindService.predictROI(roiForm);
-      
+      // استدعاء API حقيقي لتنبؤ ROI
+      const response = await strategicMindService.predictROI(processedData);
+      console.log('DEBUG: API response:', response);
+
       setRoiPrediction({
         prediction: response.data.prediction,
         confidence: response.data.confidence,
-        trend: roiTrendData, // يمكن إضافة هذا للـ API
-        benchmark: 2.1, // يمكن إضافة هذا للـ API
+        method: response.data.method,
+        explanation: response.data.explanation,
+        trend: response.data.trend || roiTrendData,
+        benchmark: response.data.benchmark || 2.1,
       });
       setSuccess(true);
-      
-      // إعادة تعيين رسالة النجاح بعد 3 ثوانٍ
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('خطأ في التنبؤ بالعائد على الاستثمار:', error);
-      // في حالة الخطأ، استخدم بيانات نموذجية
+      console.error('خطأ في تنبؤ ROI:', error);
+      // في حالة الخطأ، استخدم تنبؤ افتراضي
       setRoiPrediction({
         prediction: 2.4,
-        confidence: 0.8,
+        confidence: 0.7,
+        method: 'fallback',
+        explanation: 'تنبؤ افتراضي بسبب خطأ في الخادم',
         trend: roiTrendData,
         benchmark: 2.1,
       });
@@ -146,29 +196,38 @@ const StrategicMindPage = () => {
       setLoading(false);
     }
   };
-  
+
   const handleRecommendChannels = async () => {
     setLoading(true);
     setSuccess(false);
-    
+
+    console.log('DEBUG: handleRecommendChannels called');
+    console.log('DEBUG: channelForm data:', channelForm);
+
+    // تحويل البيانات لتناسب الشروط في الـ backend
+    const processedData = {
+      industry: channelForm.industry,
+      audience_age: Array.isArray(channelForm.audience_age) ? channelForm.audience_age.join(',') : channelForm.audience_age,
+      budget: channelForm.budget,
+      goal: channelForm.goal,
+    };
+
+    console.log('DEBUG: processedData:', processedData);
+
     try {
-      // استدعاء API حقيقي
-      const response = await strategicMindService.recommendChannels(channelForm);
-      
+      // استدعاء API حقيقي لتوصية القنوات
+      const response = await strategicMindService.recommendChannels(processedData);
+      console.log('DEBUG: API response:', response);
+
       setChannelRecommendations(response.data);
       setSuccess(true);
-      
-      // إعادة تعيين رسالة النجاح بعد 3 ثوانٍ
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error('خطأ في توصية القنوات:', error);
       // في حالة الخطأ، استخدم بيانات نموذجية
       setChannelRecommendations([
-        { channel: 'instagram', score: 0.85, reason: 'مناسب للفئة العمرية المستهدفة مع تركيز على الوعي بالعلامة التجارية' },
-        { channel: 'facebook', score: 0.75, reason: 'تغطية واسعة مع خيارات استهداف متقدمة' },
-        { channel: 'google_ads', score: 0.70, reason: 'فعال من حيث التكلفة مع إمكانية استهداف النوايا' },
-        { channel: 'tiktok', score: 0.65, reason: 'منصة متنامية مع جمهور شاب نشط' },
-        { channel: 'linkedin', score: 0.45, reason: 'أقل ملاءمة للأهداف الحالية والفئة العمرية' },
+        { channel: 'social_media', score: 0.8, reason: 'قناة افتراضية' },
+        { channel: 'search', score: 0.7, reason: 'قناة افتراضية' },
       ]);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);

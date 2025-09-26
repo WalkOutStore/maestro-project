@@ -8,7 +8,7 @@ from app.models.campaign import Campaign
 from app.models.knowledge_base import ContentTemplate
 from app.api.endpoints.users import get_current_active_user
 from app.database import get_db
-from app.core.creative_spark import TextGenerator, VisualSuggestions, TrendAnalyzer
+from app.core.creative_spark import TextGenerator, VisualSuggestions, TrendAnalyzer, TransparentMentor
 from app.utils import sanitize_filename, ensure_dir
 from app.config import settings
 
@@ -232,3 +232,46 @@ def update_template_performance(
     success = text_generator.update_template_performance(template_id, performance_data.get("performance_score", 0.0))
     
     return {"success": success}
+
+
+@router.post("/explain-generation", response_model=Dict[str, Any])
+def explain_content_generation(
+    campaign_data: Dict[str, Any],
+    content_type: str = "ad_copy",
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    شرح كيفية توليد المحتوى واتخاذ القرارات
+    """
+    # التحقق من وجود الحملة إذا تم تحديد معرف الحملة
+    if "campaign_id" in campaign_data:
+        campaign = db.query(Campaign).filter(
+            Campaign.id == campaign_data["campaign_id"],
+            Campaign.user_id == current_user.id
+        ).first()
+
+        if not campaign:
+            raise HTTPException(status_code=404, detail="الحملة غير موجودة")
+
+    # إنشاء مولد النصوص
+    text_generator = TextGenerator(db)
+
+    # توليد النص الإعلاني
+    ad_copies = text_generator.generate_ad_copy(campaign_data, content_type)
+
+    # إنشاء المرشد الشفاف
+    transparent_mentor = TransparentMentor(db)
+
+    # شرح عملية التوليد
+    explanation = transparent_mentor.explain_content_generation(campaign_data, ad_copies)
+
+    return {
+        "content_results": ad_copies,
+        "explanation": explanation,
+        "summary": {
+            "total_results": len(ad_copies),
+            "sources_used": list(set([r["source"] for r in ad_copies])),
+            "avg_confidence": sum([r["confidence"] for r in ad_copies]) / len(ad_copies) if ad_copies else 0
+        }
+    }

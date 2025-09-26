@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -43,14 +43,15 @@ class KnowledgeRule(KnowledgeRuleBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MLModelBase(BaseModel):
     """
     المخطط الأساسي لنموذج التعلم الآلي
     """
+    model_config = ConfigDict(protected_namespaces=())
+
     name: str
     description: Optional[str] = None
     model_type: str
@@ -72,6 +73,8 @@ class MLModelUpdate(BaseModel):
     """
     مخطط تحديث نموذج التعلم الآلي
     """
+    model_config = ConfigDict(protected_namespaces=())
+
     name: Optional[str] = None
     description: Optional[str] = None
     model_path: Optional[str] = None
@@ -89,8 +92,7 @@ class MLModel(MLModelBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
 
 class TrendDataBase(BaseModel):
@@ -117,8 +119,7 @@ class TrendData(TrendDataBase):
     id: int
     timestamp: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ContentTemplateBase(BaseModel):
@@ -159,5 +160,4 @@ class ContentTemplate(ContentTemplateBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

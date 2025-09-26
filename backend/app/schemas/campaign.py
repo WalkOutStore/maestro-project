@@ -44,7 +44,7 @@ class Content(ContentBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RecommendationBase(BaseModel):
@@ -82,7 +82,7 @@ class Recommendation(RecommendationBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CampaignBase(BaseModel):
@@ -134,7 +134,7 @@ class Campaign(CampaignBase):
     recommendations: List[Recommendation] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CampaignWithDetails(Campaign):

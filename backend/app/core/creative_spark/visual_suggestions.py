@@ -149,47 +149,177 @@ class VisualSuggestions:
         """
         suggestions = []
         
-        # استخراج الكلمات المفتاحية من بيانات الحملة
-        keywords = []
-        if "product_description" in campaign_data:
-            keywords.extend(campaign_data["product_description"].split())
-        if "target_audience" in campaign_data:
-            keywords.extend(str(campaign_data["target_audience"]).split())
-        if "industry" in campaign_data:
-            keywords.append(campaign_data["industry"])
+        # استخراج معلومات الحملة
+        industry = campaign_data.get("industry", "technology")
+        product = campaign_data.get("product", "منتج جديد")
+        target_audience = campaign_data.get("target_audience", "عام")
         
-        # تنظيف الكلمات المفتاحية
-        keywords = [k.strip().lower() for k in keywords if len(k.strip()) > 3]
-        keywords = list(set(keywords))[:5]  # أخذ أهم 5 كلمات مفتاحية
-        
-        # توليد اقتراحات بصرية بناءً على الكلمات المفتاحية
-        for keyword in keywords:
-            suggestions.append({
-                "type": "image",
-                "keyword": keyword,
-                "description": f"Images related to {keyword}",
-                "examples": self._get_image_examples(keyword)
-            })
+        # اقتراحات للصور
+        image_suggestions = self._get_image_suggestions_for_industry(industry, product)
+        suggestions.extend(image_suggestions)
         
         # اقتراحات للألوان بناءً على الصناعة
-        industry = campaign_data.get("industry", "").lower()
         color_palette = self._get_color_palette_for_industry(industry)
         suggestions.append({
             "type": "color_palette",
-            "description": f"Recommended color palette for {industry}",
-            "colors": color_palette
+            "title": "لوحة الألوان المقترحة",
+            "description": f"ألوان مناسبة لصناعة {industry}",
+            "colors": color_palette,
+            "usage": "استخدم هذه الألوان في التصميم لتعكس هوية الصناعة"
         })
         
         # اقتراحات لنمط التصميم
         design_style = self._get_design_style_for_industry(industry)
         suggestions.append({
             "type": "design_style",
-            "description": f"Recommended design style for {industry}",
+            "title": "نمط التصميم المقترح",
+            "description": f"نمط تصميم مناسب لصناعة {industry}",
             "style": design_style["style"],
-            "elements": design_style["elements"]
+            "elements": design_style["elements"],
+            "tips": design_style.get("tips", [])
+        })
+        
+        # اقتراحات للخطوط
+        typography = self._get_typography_for_industry(industry)
+        suggestions.append({
+            "type": "typography",
+            "title": "الخطوط المقترحة",
+            "description": "خطوط مناسبة للمحتوى التسويقي",
+            "fonts": typography
         })
         
         return suggestions
+    
+    def _get_image_suggestions_for_industry(self, industry: str, product: str) -> List[Dict[str, Any]]:
+        """
+        الحصول على اقتراحات الصور بناءً على الصناعة والمنتج
+        """
+        suggestions = []
+        
+        # قاعدة بيانات اقتراحات الصور حسب الصناعة
+        industry_images = {
+            "technology": [
+                {
+                    "type": "hero_image",
+                    "title": "صورة رئيسية للتكنولوجيا",
+                    "description": "صورة حديثة تعكس الابتكار التقني",
+                    "keywords": ["تقنية", "ابتكار", "مستقبل", "رقمي"],
+                    "style": "حديث ونظيف",
+                    "composition": "خلفية بسيطة مع تركيز على المنتج"
+                },
+                {
+                    "type": "lifestyle_image", 
+                    "title": "صورة نمط الحياة",
+                    "description": "أشخاص يستخدمون التقنية في حياتهم اليومية",
+                    "keywords": ["استخدام", "حياة يومية", "سهولة", "فعالية"],
+                    "style": "طبيعي وودود",
+                    "composition": "أشخاص حقيقيون في بيئة طبيعية"
+                }
+            ],
+            "retail": [
+                {
+                    "type": "product_showcase",
+                    "title": "عرض المنتج",
+                    "description": "صورة جذابة تبرز جودة المنتج",
+                    "keywords": ["جودة", "تفاصيل", "أناقة", "قيمة"],
+                    "style": "واضح ومفصل",
+                    "composition": "إضاءة ممتازة مع خلفية متناسقة"
+                },
+                {
+                    "type": "shopping_experience",
+                    "title": "تجربة التسوق",
+                    "description": "صور تعكس متعة وسهولة التسوق",
+                    "keywords": ["تسوق", "متعة", "راحة", "اختيار"],
+                    "style": "مفعم بالحيوية",
+                    "composition": "بيئة تسوق جذابة مع عملاء سعداء"
+                }
+            ],
+            "healthcare": [
+                {
+                    "type": "professional_care",
+                    "title": "الرعاية المهنية",
+                    "description": "صور تعكس الثقة والاحترافية في الرعاية الصحية",
+                    "keywords": ["ثقة", "احترافية", "رعاية", "صحة"],
+                    "style": "نظيف ومطمئن",
+                    "composition": "بيئة طبية نظيفة مع متخصصين"
+                }
+            ],
+            "finance": [
+                {
+                    "type": "trust_security",
+                    "title": "الثقة والأمان",
+                    "description": "صور تعكس الاستقرار المالي والثقة",
+                    "keywords": ["ثقة", "أمان", "استقرار", "نمو"],
+                    "style": "محافظ ومهني",
+                    "composition": "رموز مالية مع ألوان هادئة"
+                }
+            ]
+        }
+        
+        # الحصول على اقتراحات الصناعة أو اقتراحات عامة
+        industry_suggestions = industry_images.get(industry, [
+            {
+                "type": "general_business",
+                "title": "صورة عمل عامة",
+                "description": f"صورة مناسبة لمجال {industry}",
+                "keywords": ["احترافية", "جودة", "خدمة"],
+                "style": "مهني ونظيف",
+                "composition": "تركيز على القيمة المقدمة"
+            }
+        ])
+        
+        # إضافة معلومات إضافية لكل اقتراح
+        for suggestion in industry_suggestions:
+            suggestion.update({
+                "product_context": f"مناسب لـ {product}",
+                "industry_context": f"متوافق مع معايير {industry}",
+                "technical_specs": {
+                    "resolution": "1920x1080 أو أعلى",
+                    "format": "JPG أو PNG",
+                    "size": "أقل من 2MB للويب"
+                }
+            })
+            suggestions.append(suggestion)
+        
+        return suggestions
+    
+    def _get_typography_for_industry(self, industry: str) -> Dict[str, Any]:
+        """
+        الحصول على اقتراحات الخطوط بناءً على الصناعة
+        """
+        typography_map = {
+            "technology": {
+                "primary": "Roboto, Arial, sans-serif",
+                "secondary": "Source Code Pro, monospace",
+                "style": "حديث ونظيف",
+                "characteristics": ["واضح", "قابل للقراءة", "تقني"]
+            },
+            "healthcare": {
+                "primary": "Open Sans, Arial, sans-serif", 
+                "secondary": "Lato, sans-serif",
+                "style": "ودود ومطمئن",
+                "characteristics": ["واضح", "مريح للعين", "موثوق"]
+            },
+            "finance": {
+                "primary": "Times New Roman, serif",
+                "secondary": "Arial, sans-serif",
+                "style": "محافظ ومهني",
+                "characteristics": ["تقليدي", "موثوق", "رسمي"]
+            },
+            "retail": {
+                "primary": "Helvetica, Arial, sans-serif",
+                "secondary": "Georgia, serif",
+                "style": "جذاب ومرن",
+                "characteristics": ["واضح", "جذاب", "متنوع"]
+            }
+        }
+        
+        return typography_map.get(industry, {
+            "primary": "Arial, sans-serif",
+            "secondary": "Times New Roman, serif", 
+            "style": "عام ومتوازن",
+            "characteristics": ["واضح", "مقروء", "متوافق"]
+        })
     
     def _get_image_examples(self, keyword: str) -> List[Dict[str, str]]:
         """

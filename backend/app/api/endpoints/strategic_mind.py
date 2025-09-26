@@ -23,22 +23,28 @@ def predict_ctr(
     """
     التنبؤ بمعدل النقر إلى الظهور (CTR) للحملة
     """
+    print(f"🔍 DEBUG: predict_ctr endpoint called")
+    print(f"🔍 DEBUG: campaign_data: {campaign_data}")
+    print(f"🔍 DEBUG: current_user: {current_user.id if current_user else 'None'}")
+
     # التحقق من وجود الحملة إذا تم تحديد معرف الحملة
     if "campaign_id" in campaign_data:
         campaign = db.query(Campaign).filter(
             Campaign.id == campaign_data["campaign_id"],
             Campaign.user_id == current_user.id
         ).first()
-        
+
         if not campaign:
+            print(f"❌ DEBUG: Campaign not found")
             raise HTTPException(status_code=404, detail="الحملة غير موجودة")
-    
+
     # إنشاء محرك الاستدلال
     inference_engine = HybridInferenceEngine(db)
-    
+
     # التنبؤ بمعدل النقر إلى الظهور
     prediction = inference_engine.predict_ctr(campaign_data)
-    
+
+    print(f"✅ DEBUG: prediction result: {prediction}")
     return prediction
 
 

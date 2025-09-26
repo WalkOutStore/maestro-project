@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.knowledge_base import TrendData
 from app.config import settings
+from .api_integrations import api_integrations
 
 
 class TrendAnalyzer:
@@ -24,65 +25,35 @@ class TrendAnalyzer:
     
     def get_google_trends(self, keywords: List[str], timeframe: str = "today 3-m") -> Dict[str, Any]:
         """
-        الحصول على بيانات اتجاهات Google للكلمات المفتاحية
+        الحصول على بيانات اتجاهات Google للكلمات المفتاحية مع تحسينات للتحقق من صحة البيانات
         """
+        # التحقق من صحة المدخلات
+        if not self._validate_keywords(keywords):
+            return self._get_error_response("Invalid keywords provided")
+
+        # التحقق من صحة الإطار الزمني
+        if not self._validate_timeframe(timeframe):
+            return self._get_error_response("Invalid timeframe provided")
+
         # التحقق من وجود بيانات مخزنة مؤقتًا
         cached_data = self._get_cached_trends("google_trends", keywords, timeframe)
         if cached_data:
             return cached_data
-        
-        # إذا لم تكن هناك بيانات مخزنة مؤقتًا، استخدم API
-        if settings.GOOGLE_TRENDS_API_KEY:
-            try:
-                # هذا مثال على كيفية استخدام API
-                # سنترك التنفيذ فارغًا هنا ليتم ملؤه لاحقًا
-                
-                """
-                # استخدام pytrends كمثال
-                from pytrends.request import TrendReq
-                
-                pytrends = TrendReq(hl='en-US', tz=360)
-                pytrends.build_payload(keywords, cat=0, timeframe=timeframe, geo='', gprop='')
-                
-                # الحصول على بيانات الاهتمام بمرور الوقت
-                interest_over_time_df = pytrends.interest_over_time()
-                
-                # الحصول على بيانات الاهتمام حسب المنطقة
-                interest_by_region_df = pytrends.interest_by_region()
-                
-                # الحصول على المواضيع ذات الصلة
-                related_topics_dict = pytrends.related_topics()
-                
-                # الحصول على الاستعلامات ذات الصلة
-                related_queries_dict = pytrends.related_queries()
-                
-                # تنسيق البيانات
-                result = {
-                    "interest_over_time": interest_over_time_df.to_dict(),
-                    "interest_by_region": interest_by_region_df.to_dict(),
-                    "related_topics": related_topics_dict,
-                    "related_queries": related_queries_dict
-                }
-                
+
+        # استخدام خدمة التكامل مع الـ APIs
+        trends_result = api_integrations.get_google_trends_data(keywords, timeframe)
+
+        if trends_result["success"]:
+            # التحقق من صحة البيانات المستلمة
+            if self._validate_trend_data(trends_result["data"]):
                 # تخزين البيانات مؤقتًا
-                self._cache_trend_data("google_trends", keywords, timeframe, result)
-                
-                return result
-                """
-                
-                # نعيد بيانات افتراضية حتى يتم تنفيذ الدالة لاحقًا
-                result = self._generate_mock_google_trends(keywords, timeframe)
-                
-                # تخزين البيانات المزيفة مؤقتًا
-                self._cache_trend_data("google_trends", keywords, timeframe, result)
-                
-                return result
-            
-            except Exception as e:
-                print(f"Error fetching Google Trends data: {e}")
-        
-        # إذا لم يكن هناك مفتاح API أو حدث خطأ، نعيد بيانات افتراضية
-        return self._generate_mock_google_trends(keywords, timeframe)
+                self._cache_trend_data("google_trends", keywords, timeframe, trends_result["data"])
+                return trends_result["data"]
+            else:
+                return self._get_error_response("Invalid trend data received from API")
+        else:
+            # إذا فشل API، نعيد بيانات افتراضية
+            return self._get_error_response(trends_result["error"])
     
     def get_twitter_trends(self, keywords: List[str], days: int = 7) -> Dict[str, Any]:
         """
@@ -92,69 +63,17 @@ class TrendAnalyzer:
         cached_data = self._get_cached_trends("twitter", keywords, f"days_{days}")
         if cached_data:
             return cached_data
-        
-        # إذا لم تكن هناك بيانات مخزنة مؤقتًا، استخدم API
-        if settings.TWITTER_API_KEY and settings.TWITTER_API_SECRET:
-            try:
-                # هذا مثال على كيفية استخدام API
-                # سنترك التنفيذ فارغًا هنا ليتم ملؤه لاحقًا
-                
-                """
-                import tweepy
-                
-                # إعداد مصادقة Twitter
-                auth = tweepy.OAuthHandler(settings.TWITTER_API_KEY, settings.TWITTER_API_SECRET)
-                auth.set_access_token(settings.TWITTER_ACCESS_TOKEN, settings.TWITTER_ACCESS_SECRET)
-                
-                api = tweepy.API(auth)
-                
-                # الحصول على التغريدات للكلمات المفتاحية
-                tweets_data = {}
-                for keyword in keywords:
-                    tweets = api.search_tweets(q=keyword, count=100, lang="en", tweet_mode="extended")
-                    tweets_data[keyword] = [
-                        {
-                            "id": tweet.id,
-                            "text": tweet.full_text,
-                            "created_at": tweet.created_at.isoformat(),
-                            "user": tweet.user.screen_name,
-                            "retweet_count": tweet.retweet_count,
-                            "favorite_count": tweet.favorite_count
-                        }
-                        for tweet in tweets
-                    ]
-                
-                # تحليل المشاعر (يمكن استخدام مكتبة مثل TextBlob)
-                sentiment_data = {}
-                for keyword, tweets in tweets_data.items():
-                    sentiment_data[keyword] = self._analyze_sentiment([tweet["text"] for tweet in tweets])
-                
-                # تجميع البيانات
-                result = {
-                    "tweets": tweets_data,
-                    "sentiment": sentiment_data,
-                    "volume": {keyword: len(tweets) for keyword, tweets in tweets_data.items()}
-                }
-                
-                # تخزين البيانات مؤقتًا
-                self._cache_trend_data("twitter", keywords, f"days_{days}", result)
-                
-                return result
-                """
-                
-                # نعيد بيانات افتراضية حتى يتم تنفيذ الدالة لاحقًا
-                result = self._generate_mock_twitter_trends(keywords, days)
-                
-                # تخزين البيانات المزيفة مؤقتًا
-                self._cache_trend_data("twitter", keywords, f"days_{days}", result)
-                
-                return result
-            
-            except Exception as e:
-                print(f"Error fetching Twitter data: {e}")
-        
-        # إذا لم يكن هناك مفتاح API أو حدث خطأ، نعيد بيانات افتراضية
-        return self._generate_mock_twitter_trends(keywords, days)
+
+        # استخدام خدمة التكامل مع الـ APIs
+        twitter_result = api_integrations.get_twitter_data(keywords, days)
+
+        if twitter_result["success"]:
+            # تخزين البيانات مؤقتًا
+            self._cache_trend_data("twitter", keywords, f"days_{days}", twitter_result["data"])
+            return twitter_result["data"]
+        else:
+            # إذا فشل API، نعيد بيانات افتراضية
+            return self._get_error_response(twitter_result["error"])
     
     def analyze_trends(self, campaign_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -417,3 +336,42 @@ class TrendAnalyzer:
         analysis["recommendations"].sort(key=lambda x: x["score"], reverse=True)
         
         return analysis
+    
+    def _validate_keywords(self, keywords: List[str]) -> bool:
+        """
+        التحقق من صحة الكلمات المفتاحية
+        """
+        if not keywords or len(keywords) < 1:
+            return False
+        for keyword in keywords:
+            if not isinstance(keyword, str) or len(keyword.strip()) < 3:
+                return False
+        return True
+    
+    def _validate_timeframe(self, timeframe: str) -> bool:
+        """
+        التحقق من صحة الإطار الزمني
+        """
+        valid_timeframes = ["today 3-m", "today 1-m", "today 7-d"]
+        return timeframe in valid_timeframes
+    
+    def _validate_trend_data(self, trend_data: Dict[str, Any]) -> bool:
+        """
+        التحقق من صحة بيانات الاتجاهات
+        """
+        if not trend_data or not isinstance(trend_data, dict):
+            return False
+        required_keys = ["interest_over_time", "interest_by_region", "related_topics", "related_queries"]
+        for key in required_keys:
+            if key not in trend_data:
+                return False
+        return True
+    
+    def _get_error_response(self, error_message: str) -> Dict[str, Any]:
+        """
+        إرجاع استجابة خطأ
+        """
+        return {
+            "success": False,
+            "error": error_message
+        }
