@@ -176,4 +176,4 @@ VITE_API_URL=http://localhost:8000/api/v1
 
 ## الترخيص
 
-جميع الحقوق محفوظة © 2023 Maestro AI Marketing Platform
+جميع الحقوق محفوظة © 2025 Maestro AI Marketing Platform
